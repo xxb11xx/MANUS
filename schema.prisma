@@ -1,0 +1,102 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enum for order types
+enum OrderType {
+  DINE_IN
+  DELIVERY
+  PICKUP
+}
+
+// Enum for order status
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  READY
+  OUT_FOR_DELIVERY
+  DELIVERED
+  COMPLETED
+  CANCELLED
+}
+
+// Enum for payment status
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+// Main Order model
+model Order {
+  id              String         @id @default(uuid())
+  orderNumber     String         @unique
+  customerId      String?
+  customerName    String
+  branchId        String
+  branchName      String
+  orderDate       DateTime
+  orderType       OrderType
+  status          OrderStatus    @default(PENDING)
+  items           OrderItem[]
+  subTotal        Decimal        @db.Decimal(10, 2)
+  discountAmount  Decimal?       @db.Decimal(10, 2)
+  taxAmount       Decimal        @db.Decimal(10, 2)
+  totalAmount     Decimal        @db.Decimal(10, 2)
+  paymentMethod   String
+  paymentStatus   PaymentStatus  @default(PENDING)
+  deliveryAddress DeliveryAddress?
+  notes           String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  isDeleted       Boolean        @default(false)
+
+  @@index([orderDate])
+  @@index([orderType])
+  @@index([status])
+  @@index([branchId])
+  @@index([customerId])
+  @@index([paymentMethod])
+  @@index([paymentStatus])
+}
+
+// Order Item model
+model OrderItem {
+  id          String   @id @default(uuid())
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId     String
+  productId   String
+  productName String
+  quantity    Int
+  unitPrice   Decimal  @db.Decimal(10, 2)
+  totalPrice  Decimal  @db.Decimal(10, 2)
+  notes       String?
+
+  @@index([orderId])
+}
+
+// Delivery Address model
+model DeliveryAddress {
+  id           String  @id @default(uuid())
+  order        Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId      String  @unique
+  street       String
+  city         String
+  state        String
+  postalCode   String
+  country      String
+  contactName  String?
+  contactPhone String?
+
+  @@index([orderId])
+}
